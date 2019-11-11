@@ -1,11 +1,14 @@
 package leesiongchan.reactnativeescpos;
 
+import java.util.List;
+
 import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothDevice;
 import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
+import android.hardware.usb.UsbDevice;
 
 import com.facebook.react.bridge.Arguments;
 import com.facebook.react.bridge.Promise;
@@ -25,7 +28,7 @@ import java.io.IOException;
 import java.io.UnsupportedEncodingException;
 import java.util.HashMap;
 import java.util.Map;
-
+import java.io.ByteArrayOutputStream;
 import org.json.JSONObject;
 
 import static io.github.escposjava.print.Commands.*;
@@ -36,10 +39,22 @@ public class EscPosModule extends ReactContextBaseJavaModule {
     public static final String BLUETOOTH_CONNECTED = "BLUETOOTH_CONNECTED";
     public static final String BLUETOOTH_DISCONNECTED = "BLUETOOTH_DISCONNECTED";
     public static final String BLUETOOTH_DEVICE_FOUND = "BLUETOOTH_DEVICE_FOUND";
+
+    public static final String USB_DEVICE_FOUND = "USB_DEVICE_FOUND";
+
+    public static final String USB_DEVICE_CONNECTED = "USB_DEVICE_CONNECTED";
+    public static final String USB_DEVICE_DISCONNECTED = "USB_DEVICE_DISCONNECTED";
+
     private final ReactApplicationContext reactContext;
     private PrinterService printerService;
     private ReadableMap config;
     private ScanManager scanManager;
+    private UsbPrinterUtil usbPrinterUtil;
+    private UsbPrinter usbPrinter;
+
+    private static int[] PRINTER_VID = {
+		34918, 1659, 1137, 1155, 26728, 17224, 7358
+	};
 
     enum BluetoothEvent {
         CONNECTED, DISCONNECTED, DEVICE_FOUND, NONE
@@ -48,8 +63,7 @@ public class EscPosModule extends ReactContextBaseJavaModule {
     public EscPosModule(ReactApplicationContext reactContext) {
         super(reactContext);
         this.reactContext = reactContext;
-
-        scanManager = new ScanManager(reactContext, BluetoothAdapter.getDefaultAdapter());
+        
     }
 
     @Override
@@ -205,8 +219,8 @@ public class EscPosModule extends ReactContextBaseJavaModule {
     }
 
     @ReactMethod
-    public void kickCashDrawerPin2(Promise promise) {
-        printerService.kickCashDrawerPin2();
+    public void kickCashDrawerPin2(Promise promise) throws IOException {
+        printerService.kickCashDrawerPin2(); 
         promise.resolve(true);
     }
 
@@ -216,6 +230,12 @@ public class EscPosModule extends ReactContextBaseJavaModule {
         promise.resolve(true);
     }
 
+    @ReactMethod
+    public void printEmptyLine(int numOfLine, Promise promise) throws IOException{
+        //For USB Printer only
+        usbPrinter.printEmptyLine(numOfLine);    
+        promise.resolve(true);
+    }
     @ReactMethod
     public void connectBluetoothPrinter(String address, Promise promise) {
         try {
@@ -243,6 +263,25 @@ public class EscPosModule extends ReactContextBaseJavaModule {
             promise.reject(e);
         }
     }
+    @ReactMethod
+    public void connectUsbPrinter(Promise promise) {
+        try {
+            if (!"usb".equals(config.getString("type"))) {
+                promise.reject("config.type is not a network type");
+            }
+
+            UsbPrinterUtil u = new UsbPrinterUtil(getReactApplicationContext());
+		    List<UsbDevice> devs = u.findDevicesByVid(PRINTER_VID);
+		    if(devs.size() > 0) {
+                Printer printer = new UsbPrinter(getReactApplicationContext(), devs.get(0));
+                printerService = new PrinterService(printer);
+            
+    		}
+             promise.resolve(true);
+        } catch (IOException e) {
+            promise.reject(e);
+        }
+    }
 
     @ReactMethod
     public void disconnect(Promise promise) {
@@ -256,6 +295,7 @@ public class EscPosModule extends ReactContextBaseJavaModule {
 
     @ReactMethod
     public void scanDevices() {
+        scanManager = new ScanManager(getReactApplicationContext(), BluetoothAdapter.getDefaultAdapter());
         scanManager.registerCallback(new ScanManager.OnBluetoothScanListener() {
             @Override
             public void deviceFound(BluetoothDevice bluetoothDevice) {
@@ -278,7 +318,9 @@ public class EscPosModule extends ReactContextBaseJavaModule {
 
     @ReactMethod
     public void stopScan() {
-        scanManager.stopScan();
+        if(scanManager != null){
+            scanManager.stopScan();
+        }
     }
 
     @ReactMethod

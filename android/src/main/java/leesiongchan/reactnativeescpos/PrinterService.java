@@ -90,7 +90,12 @@ public class PrinterService {
 
     public void printDesign(String text) throws IOException {
         ByteArrayOutputStream baos = generateDesignByteArrayOutputStream(text);
-        write(baos.toByteArray());
+        // if(usbPrinter == null){
+            write(baos.toByteArray());    
+        // }else{
+        //     usbPrinter.printString(baos);
+        // }
+        
     }
 
     public void printImage(String filePath) throws IOException {
@@ -142,8 +147,13 @@ public class PrinterService {
         basePrinterService.close();
     }
 
-    public void kickCashDrawerPin2(){
-        basePrinterService.write(CD_KICK_2);
+    public void kickCashDrawerPin2() throws IOException{
+        // if(usbPrinter == null){
+            basePrinterService.write(CD_KICK_2);
+        // }else{
+        //     usbPrinter.kickCashDrawerPin2();
+        // }
+        
     }
 
     public void kickCashDrawerPin5(){
