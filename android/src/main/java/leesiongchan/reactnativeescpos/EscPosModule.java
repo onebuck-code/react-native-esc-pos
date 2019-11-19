@@ -25,6 +25,7 @@ import java.io.IOException;
 import java.io.UnsupportedEncodingException;
 import java.util.HashMap;
 import java.util.Map;
+import java.io.ByteArrayOutputStream;
 
 import org.json.JSONObject;
 
@@ -36,6 +37,11 @@ public class EscPosModule extends ReactContextBaseJavaModule {
     public static final String BLUETOOTH_CONNECTED = "BLUETOOTH_CONNECTED";
     public static final String BLUETOOTH_DISCONNECTED = "BLUETOOTH_DISCONNECTED";
     public static final String BLUETOOTH_DEVICE_FOUND = "BLUETOOTH_DEVICE_FOUND";
+
+    public static final String USB_DEVICE_FOUND = "USB_DEVICE_FOUND";
+    public static final String USB_DEVICE_CONNECTED = "USB_DEVICE_CONNECTED";
+    public static final String USB_DEVICE_DISCONNECTED = "USB_DEVICE_DISCONNECTED";
+
     private final ReactApplicationContext reactContext;
     private PrinterService printerService;
     private ReadableMap config;
@@ -49,7 +55,13 @@ public class EscPosModule extends ReactContextBaseJavaModule {
         super(reactContext);
         this.reactContext = reactContext;
 
-        scanManager = new ScanManager(reactContext, BluetoothAdapter.getDefaultAdapter());
+        // scanManager = new ScanManager(reactContext, BluetoothAdapter.getDefaultAdapter());
+        try{
+            UsbPrinter.requestUsbPrinter(reactContext);
+            UsbPrinter p = UsbPrinter.open(reactContext);
+        }catch(Throwable e){
+    
+        }
     }
 
     @Override
@@ -66,6 +78,57 @@ public class EscPosModule extends ReactContextBaseJavaModule {
     @Override
     public String getName() {
         return "EscPos";
+    }
+
+    @ReactMethod
+    public void usbTestPrint(String text){
+        UsbPrinter p = null;
+        try{
+            p = UsbPrinter.open(getReactApplicationContext());
+            ByteArrayOutputStream baos = new PrinterService().generateDesignByteArrayOutputStream(text);
+            p.printString(baos);
+        }catch (Throwable e) {
+            e.printStackTrace();
+        }finally{
+            if(p != null){
+                p.close();
+            }
+        }
+    }
+
+    public void printEmptyLine(int numOfLine, Promise promise) throws IOException{
+        //For USB Printer only
+        UsbPrinter p = null;
+        try{
+            p = UsbPrinter.open(getReactApplicationContext());
+            p.printEmptyLine(numOfLine);
+        }catch (Throwable e) {
+            e.printStackTrace();
+        }finally{
+            if(p != null){
+                p.close();
+            }
+        }
+        promise.resolve(true);
+    }
+    
+
+    @ReactMethod
+    public void kickCashDrawerPin2USB(Promise promise) throws IOException{
+        UsbPrinter p = null;
+        try{
+            p = UsbPrinter.open(getReactApplicationContext());
+            byte[] CD_PIN_2 = {0x1b,0x70,0x00, 0x00,0x00};
+
+            p.write(CD_PIN_2);
+        }catch(Throwable e) {
+            e.printStackTrace();
+        }finally{
+            if(p != null){
+                p.close();
+            }
+        }
+        promise.resolve(true);
     }
 
     @ReactMethod

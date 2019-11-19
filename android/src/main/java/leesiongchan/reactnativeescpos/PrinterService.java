@@ -31,6 +31,9 @@ public class PrinterService {
     public PrinterService(Printer printer) throws IOException {
         basePrinterService = new io.github.escposjava.PrinterService(printer);
     }
+    public PrinterService() {
+     
+    }
 
     public PrinterService(Printer printer, int printingWidth) throws IOException {
         basePrinterService = new io.github.escposjava.PrinterService(printer);
@@ -171,7 +174,7 @@ public class PrinterService {
      * DESIGN 3: Barcode                          *
      * {QR[Love me, hate me.]} {C}                *
      **/
-    private ByteArrayOutputStream generateDesignByteArrayOutputStream(String text) throws IOException {
+    public ByteArrayOutputStream generateDesignByteArrayOutputStream(String text) throws IOException {
         BufferedReader reader = new BufferedReader(new StringReader(text.trim()));
         ByteArrayOutputStream baos = new ByteArrayOutputStream();
         String line;
@@ -192,6 +195,7 @@ public class PrinterService {
             boolean h1 = line.contains("{H1}");
             boolean h2 = line.contains("{H2}");
             boolean h3 = line.contains("{H3}");
+            boolean h4 = line.contains("{H4}");
             boolean lsm = line.contains("{LS:M}");
             boolean lsl = line.contains("{LS:L}");
             boolean ct = line.contains("{C}");
@@ -216,7 +220,8 @@ public class PrinterService {
 
             // Add tags
             if (bold) {
-                baos.write(TXT_BOLD_ON);
+                byte[] boldText = new byte[] { 0x1B, 0x45, (byte)1 };
+                baos.write(boldText);
                 line = line.replace("{B}", "");
             }
             if (underline) {
@@ -236,6 +241,14 @@ public class PrinterService {
                 baos.write(TXT_2WIDTH_NEW);
                 baos.write(LINE_SPACE_68);
                 line = line.replace("{H3}", "");
+                charsOnLine = charsOnLine / 2;
+            } else if (h4) {
+                byte options = 0;
+		        options |= ((2-1)<<4);
+                options |= (2-1);
+		        byte[] cmd = { 0x1D, 0x21, options};
+                baos.write(cmd);
+                line = line.replace("{H4}", "");
                 charsOnLine = charsOnLine / 2;
             }
             if (lsm) {
@@ -267,7 +280,7 @@ public class PrinterService {
             if (underline) {
                 baos.write(TXT_UNDERL_OFF);
             }
-            if (h1 || h2 || h3) {
+            if (h1 || h2 || h3 || h4) {
                 baos.write(DEFAULT_LINE_SPACE);
                 baos.write(TXT_NORMAL_NEW);
             }
