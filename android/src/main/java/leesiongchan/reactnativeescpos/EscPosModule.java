@@ -55,12 +55,13 @@ public class EscPosModule extends ReactContextBaseJavaModule {
         super(reactContext);
         this.reactContext = reactContext;
 
-        // scanManager = new ScanManager(reactContext, BluetoothAdapter.getDefaultAdapter());
-        try{
+        // scanManager = new ScanManager(reactContext,
+        // BluetoothAdapter.getDefaultAdapter());
+        try {
             UsbPrinter.requestUsbPrinter(reactContext);
             UsbPrinter p = UsbPrinter.open(reactContext);
-        }catch(Throwable e){
-    
+        } catch (Throwable e) {
+
         }
     }
 
@@ -81,50 +82,51 @@ public class EscPosModule extends ReactContextBaseJavaModule {
     }
 
     @ReactMethod
-    public void usbTestPrint(String text){
+    public void usbTestPrint(String text, Promise promise) throws IOException{
         UsbPrinter p = null;
-        try{
+        try {
             p = UsbPrinter.open(getReactApplicationContext());
             ByteArrayOutputStream baos = new PrinterService().generateDesignByteArrayOutputStream(text);
             p.printString(baos);
-        }catch (Throwable e) {
+        } catch (Throwable e) {
             e.printStackTrace();
-        }finally{
-            if(p != null){
-                p.close();
-            }
-        }
-    }
-
-    public void printEmptyLine(int numOfLine, Promise promise) throws IOException{
-        //For USB Printer only
-        UsbPrinter p = null;
-        try{
-            p = UsbPrinter.open(getReactApplicationContext());
-            p.printEmptyLine(numOfLine);
-        }catch (Throwable e) {
-            e.printStackTrace();
-        }finally{
-            if(p != null){
+        } finally {
+            if (p != null) {
                 p.close();
             }
         }
         promise.resolve(true);
     }
-    
 
     @ReactMethod
-    public void kickCashDrawerPin2USB(Promise promise) throws IOException{
+    public void printEmptyLine(int numOfLine, Promise promise) throws IOException {
+        // For USB Printer only
         UsbPrinter p = null;
-        try{
+        try {
             p = UsbPrinter.open(getReactApplicationContext());
-            byte[] CD_PIN_2 = {0x1b,0x70,0x00, 0x00,0x00};
+            p.printEmptyLine(numOfLine);
+        } catch (Throwable e) {
+            e.printStackTrace();
+        } finally {
+            if (p != null) {
+                p.close();
+            }
+        }
+        promise.resolve(true);
+    }
+
+    @ReactMethod
+    public void kickCashDrawerPin2USB(Promise promise) throws IOException {
+        UsbPrinter p = null;
+        try {
+            p = UsbPrinter.open(getReactApplicationContext());
+            byte[] CD_PIN_2 = { 0x1b, 0x70, 0x00, 0x00, 0x00 };
 
             p.write(CD_PIN_2);
-        }catch(Throwable e) {
+        } catch (Throwable e) {
             e.printStackTrace();
-        }finally{
-            if(p != null){
+        } finally {
+            if (p != null) {
                 p.close();
             }
         }
